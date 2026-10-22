@@ -1,0 +1,7 @@
+# Local credentials
+/gm.ini
+!/gm.ini.example
+__pycache__/
+.venv/
+*.csv
+*.json
