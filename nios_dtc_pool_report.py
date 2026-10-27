@@ -88,6 +88,27 @@ FINDINGS = {
         'Pool is not associated with any LBDN'),
 }
 
+# Summary wording by finding type: (singular, plural) following the count
+SUMMARY = {
+    'ALL_AVAILABLE_MIXED_SERVER_TYPES': (
+        'pool uses the ALL_AVAILABLE LB method with a mix of IP and '
+        'FQDN servers',
+        'pools use the ALL_AVAILABLE LB method with a mix of IP and '
+        'FQDN servers'),
+    'MIXED_SERVER_TYPES': (
+        'pool has a mix of IP and FQDN servers (other LB method)',
+        'pools have a mix of IP and FQDN servers (other LB method)'),
+    'POOL_NO_SERVERS': (
+        'pool has no servers assigned',
+        'pools have no servers assigned'),
+    'SERVER_NOT_FOUND': (
+        'pool references a server that was not returned by the Grid',
+        'pools reference servers that were not returned by the Grid'),
+    'POOL_NOT_IN_LBDN': (
+        'pool is not associated with any LBDN',
+        'pools are not associated with any LBDN'),
+}
+
 
 def parseargs():
     '''
@@ -385,8 +406,10 @@ def print_report(records: list, findings_only: bool = False):
     print('=' * 29)
     print(f'Pools: {len(records)}\n')
     print('Findings summary:')
-    for ftype, (sev, desc) in FINDINGS.items():
-        print(f'  [{sev:6}] {counts[ftype]:4}  {desc}')
+    for ftype, (sev, _) in FINDINGS.items():
+        count = counts[ftype]
+        text = SUMMARY[ftype][0 if count == 1 else 1]
+        print(f'  [{sev:6}] {count:4}  {text}')
     print()
 
     for rec in records:

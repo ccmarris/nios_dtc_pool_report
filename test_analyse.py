@@ -62,3 +62,13 @@ def test_classify():
     assert r.classify_host('2001:db8::1') == 'IP'
     assert r.classify_host('a.example.com') == 'FQDN'
     assert r.classify_host('') == ''
+
+
+def test_summary_plurals(capsys):
+    recs = r.analyse(POOLS, SERVERS, LBDNS)
+    r.print_report(recs)
+    out = capsys.readouterr().out
+    assert '   2  pools use the ALL_AVAILABLE' in out
+    assert '   1  pool has a mix of IP and FQDN servers' in out
+    assert '   2  pools are not associated with any LBDN' in out
+    assert '   1  pool is not associated' not in out
