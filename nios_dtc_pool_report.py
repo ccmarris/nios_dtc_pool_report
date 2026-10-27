@@ -78,6 +78,10 @@ FINDINGS = {
     'ALL_AVAILABLE_MIXED_SERVER_TYPES': ('HIGH',
         'Pool uses the ALL_AVAILABLE LB method with a mix of IP and '
         'FQDN servers'),
+    'POOL_HEALTH_RED': ('HIGH',
+        'Pool health is RED'),
+    'POOL_HEALTH_YELLOW': ('MEDIUM',
+        'Pool health is YELLOW'),
     'MIXED_SERVER_TYPES': ('LOW',
         'Pool has a mix of IP and FQDN servers (other LB method)'),
     'POOL_NO_SERVERS': ('LOW',
@@ -86,6 +90,10 @@ FINDINGS = {
         'Pool references a server that was not returned by the Grid'),
     'POOL_NOT_IN_LBDN': ('INFO',
         'Pool is not associated with any LBDN'),
+    'POOL_HEALTH_UNKNOWN': ('INFO',
+        'Pool health is not GREEN, YELLOW or RED (e.g. GRAY/NONE)'),
+    'POOL_DISABLED': ('INFO',
+        'Pool is disabled'),
 }
 
 # Summary wording by finding type: (singular, plural) following the count
@@ -95,6 +103,12 @@ SUMMARY = {
         'FQDN servers',
         'pools use the ALL_AVAILABLE LB method with a mix of IP and '
         'FQDN servers'),
+    'POOL_HEALTH_RED': (
+        'pool has RED health',
+        'pools have RED health'),
+    'POOL_HEALTH_YELLOW': (
+        'pool has YELLOW health',
+        'pools have YELLOW health'),
     'MIXED_SERVER_TYPES': (
         'pool has a mix of IP and FQDN servers (other LB method)',
         'pools have a mix of IP and FQDN servers (other LB method)'),
@@ -107,6 +121,12 @@ SUMMARY = {
     'POOL_NOT_IN_LBDN': (
         'pool is not associated with any LBDN',
         'pools are not associated with any LBDN'),
+    'POOL_HEALTH_UNKNOWN': (
+        'pool has health that is not GREEN, YELLOW or RED (e.g. GRAY/NONE)',
+        'pools have health that is not GREEN, YELLOW or RED (e.g. GRAY/NONE)'),
+    'POOL_DISABLED': (
+        'pool is disabled',
+        'pools are disabled'),
 }
 
 
@@ -294,6 +314,18 @@ def analyse(pools: list, servers: list, lbdns: list) -> list:
 
         if not pool_servers:
             findings.append(('POOL_NO_SERVERS', ''))
+
+        health = ((pool.get('health') or {}).get('availability') or '').upper()
+        health_detail = (pool.get('health') or {}).get('description', '')
+        if health == 'RED':
+            findings.append(('POOL_HEALTH_RED', health_detail))
+        elif health == 'YELLOW':
+            findings.append(('POOL_HEALTH_YELLOW', health_detail))
+        elif health != 'GREEN':
+            findings.append(('POOL_HEALTH_UNKNOWN', health or 'NONE'))
+
+        if pool.get('disable', False):
+            findings.append(('POOL_DISABLED', ''))
 
         records.append({'name': name,
                         'comment': pool.get('comment', ''),

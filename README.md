@@ -8,6 +8,10 @@ Reports on NIOS DTC pool configuration via WAPI and flags potential misconfigura
 |---|---|---|
 | `ALL_AVAILABLE_MIXED_SERVER_TYPES` | HIGH | Preferred or alternate LB method is `ALL_AVAILABLE` and the servers are a mix of IP and FQDN hosts |
 | `MIXED_SERVER_TYPES` | LOW | Mix of IP and FQDN servers with any other LB method |
+| `POOL_HEALTH_RED` | HIGH | Pool health is RED |
+| `POOL_HEALTH_YELLOW` | MEDIUM | Pool health is YELLOW |
+| `POOL_HEALTH_UNKNOWN` | INFO | Pool health is not GREEN/YELLOW/RED (GRAY, NONE or not returned) |
+| `POOL_DISABLED` | INFO | Pool is disabled |
 | `POOL_NOT_IN_LBDN` | INFO | Pool is not referenced by any LBDN |
 | `POOL_NO_SERVERS` | LOW | Pool has no servers |
 | `SERVER_NOT_FOUND` | LOW | Pool references a server not returned by the Grid |

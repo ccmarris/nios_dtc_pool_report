@@ -32,6 +32,8 @@ POOLS = [
     {'name': 'ghost', 'lb_preferred_method': 'ALL_AVAILABLE',
      'servers': [srv('nope')]},
 ]
+for _p in POOLS:
+    _p.setdefault('health', {'availability': 'GREEN'})
 LBDNS = [{'name': 'lb1', 'pools': [
     {'pool': 'dtc:pool/p:mixed_all', 'ratio': 1},
     {'pool': 'dtc:pool/p:mixed_alt_all', 'ratio': 1},
@@ -55,6 +57,29 @@ def test_analyse():
     assert types(recs['empty']) == {'POOL_NOT_IN_LBDN', 'POOL_NO_SERVERS'}
     assert 'SERVER_NOT_FOUND' in types(recs['ghost'])
     assert recs['mixed_all']['lbdns'] == ['lb1']
+
+
+def test_health_findings():
+    def pool(name, **kw):
+        return dict({'name': name, 'servers': [srv('web1')]}, **kw)
+    pools = [pool('red', health={'availability': 'RED', 'description': 'down'}),
+             pool('yellow', health={'availability': 'YELLOW'}),
+             pool('gray', health={'availability': 'GRAY'}),
+             pool('none'),
+             pool('off', disable=True, health={'availability': 'GREEN'}),
+             pool('ok', health={'availability': 'GREEN'})]
+    lbdns = [{'name': 'lb', 'pools': [
+        {'pool': f'dtc:pool/p:{p["name"]}'} for p in pools]}]
+    recs = {x['name']: x for x in r.analyse(pools, SERVERS, lbdns)}
+    assert types(recs['red']) == {'POOL_HEALTH_RED'}
+    assert recs['red']['findings'][0]['severity'] == 'HIGH'
+    assert types(recs['yellow']) == {'POOL_HEALTH_YELLOW'}
+    assert recs['yellow']['findings'][0]['severity'] == 'MEDIUM'
+    assert types(recs['gray']) == {'POOL_HEALTH_UNKNOWN'}
+    assert types(recs['none']) == {'POOL_HEALTH_UNKNOWN'}
+    assert recs['gray']['findings'][0]['severity'] == 'INFO'
+    assert types(recs['off']) == {'POOL_DISABLED'}
+    assert types(recs['ok']) == set()
 
 
 def test_classify():
