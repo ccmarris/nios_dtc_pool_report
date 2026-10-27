@@ -6,13 +6,13 @@ Reports on NIOS DTC pool configuration via WAPI and flags potential misconfigura
 
 | Finding | Severity | Meaning |
 |---|---|---|
-| `ALL_AVAILABLE_MIXED_SERVER_TYPES` | HIGH | Preferred or alternate LB method is "All Available" (`ALL_AVAILABLE`) and the servers are a mix of IP and FQDN hosts |
+| `ALL_AVAILABLE_MIXED_SERVER_TYPES` | HIGH | Preferred or alternate LB method is `ALL_AVAILABLE` and the servers are a mix of IP and FQDN hosts |
 | `MIXED_SERVER_TYPES` | LOW | Mix of IP and FQDN servers with any other LB method |
-| `POOL_NOT_IN_LBDN` | MEDIUM | Pool is not referenced by any LBDN |
+| `POOL_NOT_IN_LBDN` | INFO | Pool is not referenced by any LBDN |
 | `POOL_NO_SERVERS` | LOW | Pool has no servers |
 | `SERVER_NOT_FOUND` | LOW | Pool references a server not returned by the Grid |
 
-The pool's monitor rule (`availability`: ALL/ANY/QUORUM) is reported as "Monitor rule"; it is not the "All Available" LB method.
+The pool's monitor rule (`availability`: ALL/ANY/QUORUM) is reported as "Monitor rule"; it is not the `ALL_AVAILABLE` LB method.
 
 ## Usage
 

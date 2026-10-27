@@ -6,7 +6,7 @@
 
     Report on NIOS DTC pool configuration and flag potential
     misconfigurations:
-      - Pools using the "All Available" load balancing method with a
+      - Pools using the ALL_AVAILABLE load balancing method with a
         mixture of IP based and FQDN based servers
       - Pools not associated with any LBDN
 
@@ -76,16 +76,16 @@ MONITOR_RULE_LABELS = {'ALL': 'All monitors up', 'ANY': 'Any monitor up',
 # Severity and description of each finding type
 FINDINGS = {
     'ALL_AVAILABLE_MIXED_SERVER_TYPES': ('HIGH',
-        'Pool uses the "All Available" LB method with a mix of IP and '
+        'Pool uses the ALL_AVAILABLE LB method with a mix of IP and '
         'FQDN servers'),
     'MIXED_SERVER_TYPES': ('LOW',
         'Pool has a mix of IP and FQDN servers (other LB method)'),
-    'POOL_NOT_IN_LBDN': ('MEDIUM',
-        'Pool is not associated with any LBDN'),
     'POOL_NO_SERVERS': ('LOW',
         'Pool has no servers assigned'),
     'SERVER_NOT_FOUND': ('LOW',
         'Pool references a server that was not returned by the Grid'),
+    'POOL_NOT_IN_LBDN': ('INFO',
+        'Pool is not associated with any LBDN'),
 }
 
 
