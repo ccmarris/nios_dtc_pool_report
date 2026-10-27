@@ -444,6 +444,21 @@ def print_report(records: list, findings_only: bool = False):
         print(f'  [{sev:6}] {count:4}  {text}')
     print()
 
+    health_counts = {}
+    for rec in records:
+        value = (rec['health'] or 'NONE').upper()
+        if value != 'GREEN':
+            health_counts[value] = health_counts.get(value, 0) + 1
+    print('Non-GREEN pool health:')
+    if health_counts:
+        order = {'RED': 0, 'YELLOW': 1}
+        for value in sorted(health_counts,
+                            key=lambda v: (order.get(v, 2), v)):
+            print(f'  {value:10} {health_counts[value]:4}')
+    else:
+        print('  None')
+    print()
+
     for rec in records:
         if findings_only and not rec['findings']:
             continue

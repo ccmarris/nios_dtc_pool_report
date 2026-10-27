@@ -97,3 +97,17 @@ def test_summary_plurals(capsys):
     assert '   1  pool has a mix of IP and FQDN servers' in out
     assert '   2  pools are not associated with any LBDN' in out
     assert '   1  pool is not associated' not in out
+
+
+def test_health_summary(capsys):
+    pools = [{'name': n, 'servers': [], 'health': {'availability': h}}
+             for n, h in [('a', 'RED'), ('b', 'RED'), ('c', 'YELLOW'),
+                          ('d', 'DARKGRAY'), ('e', 'GREEN')]]
+    r.print_report(r.analyse(pools, SERVERS, []))
+    out = capsys.readouterr().out
+    assert 'Non-GREEN pool health:' in out
+    assert '  RED           2' in out
+    assert '  YELLOW        1' in out
+    assert '  DARKGRAY      1' in out
+    assert out.index('RED  ') < out.index('YELLOW  ') < out.index('DARKGRAY  ')
+    assert 'GREEN ' not in out.split('Non-GREEN pool health:')[1].split('Pool:')[0]
