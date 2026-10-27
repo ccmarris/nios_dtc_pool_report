@@ -102,12 +102,12 @@ def test_summary_plurals(capsys):
 def test_health_summary(capsys):
     pools = [{'name': n, 'servers': [], 'health': {'availability': h}}
              for n, h in [('a', 'RED'), ('b', 'RED'), ('c', 'YELLOW'),
-                          ('d', 'DARKGRAY'), ('e', 'GREEN')]]
+                          ('d', 'DARKGRAY'), ('e', 'GREEN'), ('f', 'GREEN'),
+                          ('g', 'GREEN')]]
+    pools.append({'name': 'h', 'servers': []})
     r.print_report(r.analyse(pools, SERVERS, []))
     out = capsys.readouterr().out
-    assert 'Non-GREEN pool health:' in out
-    assert '  RED           2' in out
-    assert '  YELLOW        1' in out
-    assert '  DARKGRAY      1' in out
-    assert out.index('RED  ') < out.index('YELLOW  ') < out.index('DARKGRAY  ')
-    assert 'GREEN ' not in out.split('Non-GREEN pool health:')[1].split('Pool:')[0]
+    summary = out.split('Pool health summary:')[1].split('Pool:')[0]
+    lines = [ln.split() for ln in summary.strip().splitlines()]
+    assert lines == [['RED', '2'], ['YELLOW', '1'], ['DARKGRAY', '1'],
+                     ['NONE', '1'], ['GREEN', '3']]

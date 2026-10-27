@@ -447,16 +447,11 @@ def print_report(records: list, findings_only: bool = False):
     health_counts = {}
     for rec in records:
         value = (rec['health'] or 'NONE').upper()
-        if value != 'GREEN':
-            health_counts[value] = health_counts.get(value, 0) + 1
-    print('Non-GREEN pool health:')
-    if health_counts:
-        order = {'RED': 0, 'YELLOW': 1}
-        for value in sorted(health_counts,
-                            key=lambda v: (order.get(v, 2), v)):
-            print(f'  {value:10} {health_counts[value]:4}')
-    else:
-        print('  None')
+        health_counts[value] = health_counts.get(value, 0) + 1
+    print('Pool health summary:')
+    order = {'RED': 0, 'YELLOW': 1, 'GREEN': 3}
+    for value in sorted(health_counts, key=lambda v: (order.get(v, 2), v)):
+        print(f'  {value:10} {health_counts[value]:4}')
     print()
 
     for rec in records:
