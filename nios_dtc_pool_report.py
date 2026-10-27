@@ -6,8 +6,8 @@
 
     Report on NIOS DTC pool configuration and flag potential
     misconfigurations:
-      - Pools using "All available" (ALL) health with a mixture of
-        IP based and FQDN based servers
+      - Pools using the "All Available" load balancing method with a
+        mixture of IP based and FQDN based servers
       - Pools not associated with any LBDN
 
  Requirements:
@@ -67,13 +67,19 @@ POOL_FIELDS = ('name,comment,disable,availability,quorum,'
 SERVER_FIELDS = 'name,host,disable,monitors,use_sni_hostname,health'
 LBDN_FIELDS = 'name,disable,pools,lb_method,patterns,auth_zones'
 
-AVAIL_LABELS = {'ALL': 'All available', 'ANY': 'Any available',
-                'QUORUM': 'Quorum'}
+ALL_AVAILABLE = 'ALL_AVAILABLE'
+
+# Pool 'availability' field: how monitor results are combined
+MONITOR_RULE_LABELS = {'ALL': 'All monitors up', 'ANY': 'Any monitor up',
+                       'QUORUM': 'Quorum of monitors up'}
 
 # Severity and description of each finding type
 FINDINGS = {
-    'ALL_MIXED_SERVER_TYPES': ('HIGH',
-        'Pool uses "All available" with a mix of IP and FQDN servers'),
+    'ALL_AVAILABLE_MIXED_SERVER_TYPES': ('HIGH',
+        'Pool uses the "All Available" LB method with a mix of IP and '
+        'FQDN servers'),
+    'MIXED_SERVER_TYPES': ('LOW',
+        'Pool has a mix of IP and FQDN servers (other LB method)'),
     'POOL_NOT_IN_LBDN': ('MEDIUM',
         'Pool is not associated with any LBDN'),
     'POOL_NO_SERVERS': ('LOW',
@@ -227,7 +233,9 @@ def analyse(pools: list, servers: list, lbdns: list) -> list:
     records = []
     for pool in pools:
         name = pool.get('name')
-        availability = pool.get('availability', '')
+        monitor_rule = pool.get('availability', '')
+        preferred = pool.get('lb_preferred_method', '')
+        alternate = pool.get('lb_alternate_method', '')
         findings = []
         pool_servers = []
 
@@ -249,11 +257,14 @@ def analyse(pools: list, servers: list, lbdns: list) -> list:
                 findings.append(('SERVER_NOT_FOUND', ref_name(sref)))
 
         types = {s['type'] for s in pool_servers if s['type']}
-        if availability == 'ALL' and types == {'IP', 'FQDN'}:
+        if types == {'IP', 'FQDN'}:
             n_ip = sum(1 for s in pool_servers if s['type'] == 'IP')
             n_fqdn = sum(1 for s in pool_servers if s['type'] == 'FQDN')
-            findings.append(('ALL_MIXED_SERVER_TYPES',
-                             f'{n_ip} IP / {n_fqdn} FQDN'))
+            detail = f'{n_ip} IP / {n_fqdn} FQDN'
+            if ALL_AVAILABLE in (preferred, alternate):
+                findings.append(('ALL_AVAILABLE_MIXED_SERVER_TYPES', detail))
+            else:
+                findings.append(('MIXED_SERVER_TYPES', detail))
 
         if name not in pool_lbdns:
             findings.append(('POOL_NOT_IN_LBDN', ''))
@@ -264,10 +275,10 @@ def analyse(pools: list, servers: list, lbdns: list) -> list:
         records.append({'name': name,
                         'comment': pool.get('comment', ''),
                         'disable': pool.get('disable', False),
-                        'availability': availability,
+                        'monitor_rule': monitor_rule,
                         'quorum': pool.get('quorum', 0),
-                        'lb_preferred_method': pool.get('lb_preferred_method', ''),
-                        'lb_alternate_method': pool.get('lb_alternate_method', ''),
+                        'lb_preferred_method': preferred,
+                        'lb_alternate_method': alternate,
                         'monitors': [ref_name(m) for m in pool.get('monitors', [])],
                         'health': (pool.get('health') or {}).get(
                             'availability', ''),
@@ -377,13 +388,13 @@ def print_report(records: list, findings_only: bool = False):
     for rec in records:
         if findings_only and not rec['findings']:
             continue
-        avail = AVAIL_LABELS.get(rec['availability'], rec['availability'])
+        rule = MONITOR_RULE_LABELS.get(rec['monitor_rule'], rec['monitor_rule'])
         state = ' (disabled)' if rec['disable'] else ''
         print(f'Pool: {rec["name"]}{state}')
-        print(f'  Availability : {avail}')
         print(f'  LB method    : {rec["lb_preferred_method"]}'
               f' / {rec["lb_alternate_method"] or "-"}')
         print(f'  Monitors     : {", ".join(rec["monitors"]) or "-"}')
+        print(f'  Monitor rule : {rule}')
         print(f'  LBDNs        : {", ".join(rec["lbdns"]) or "-"}')
         print('  Servers      :')
         for s in rec['servers']:
@@ -407,7 +418,7 @@ def write_outputs(records: list, prefix: str):
     Returns:
         None
     '''
-    pool_cols = ['name', 'comment', 'disable', 'availability', 'quorum',
+    pool_cols = ['name', 'comment', 'disable', 'monitor_rule', 'quorum',
                  'lb_preferred_method', 'lb_alternate_method', 'health',
                  'monitors', 'lbdns', 'servers', 'ip_servers',
                  'fqdn_servers', 'findings']

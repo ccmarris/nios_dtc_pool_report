@@ -15,16 +15,26 @@ def srv(n):
 
 
 POOLS = [
-    {'name': 'mixed_all', 'availability': 'ALL', 'servers': [srv('web1'), srv('web2')]},
-    {'name': 'mixed_any', 'availability': 'ANY', 'servers': [srv('web1'), srv('web2')]},
-    {'name': 'ip_all', 'availability': 'ALL', 'servers': [srv('web1'), srv('web3')]},
-    {'name': 'orphan', 'availability': 'ANY', 'servers': [srv('web1')]},
-    {'name': 'empty', 'availability': 'ALL', 'servers': []},
-    {'name': 'ghost', 'availability': 'ALL', 'servers': [srv('nope')]},
+    {'name': 'mixed_all', 'lb_preferred_method': 'ALL_AVAILABLE',
+     'servers': [srv('web1'), srv('web2')]},
+    {'name': 'mixed_alt_all', 'lb_preferred_method': 'ROUND_ROBIN',
+     'lb_alternate_method': 'ALL_AVAILABLE',
+     'servers': [srv('web1'), srv('web2')]},
+    {'name': 'mixed_ga', 'availability': 'ALL',
+     'lb_preferred_method': 'GLOBAL_AVAILABILITY',
+     'servers': [srv('web1'), srv('web2')]},
+    {'name': 'ip_all', 'lb_preferred_method': 'ALL_AVAILABLE',
+     'servers': [srv('web1'), srv('web3')]},
+    {'name': 'orphan', 'lb_preferred_method': 'ROUND_ROBIN',
+     'servers': [srv('web1')]},
+    {'name': 'empty', 'lb_preferred_method': 'ALL_AVAILABLE', 'servers': []},
+    {'name': 'ghost', 'lb_preferred_method': 'ALL_AVAILABLE',
+     'servers': [srv('nope')]},
 ]
 LBDNS = [{'name': 'lb1', 'pools': [
     {'pool': 'dtc:pool/p:mixed_all', 'ratio': 1},
-    {'pool': 'dtc:pool/p:mixed_any', 'ratio': 1},
+    {'pool': 'dtc:pool/p:mixed_alt_all', 'ratio': 1},
+    {'pool': 'dtc:pool/p:mixed_ga', 'ratio': 1},
     {'pool': 'dtc:pool/p:ip_all', 'ratio': 1},
     {'pool': 'dtc:pool/p:ghost', 'ratio': 1}]}]
 
@@ -35,8 +45,10 @@ def types(rec):
 
 def test_analyse():
     recs = {x['name']: x for x in r.analyse(POOLS, SERVERS, LBDNS)}
-    assert types(recs['mixed_all']) == {'ALL_MIXED_SERVER_TYPES'}
-    assert types(recs['mixed_any']) == set()
+    assert types(recs['mixed_all']) == {'ALL_AVAILABLE_MIXED_SERVER_TYPES'}
+    assert types(recs['mixed_alt_all']) == {'ALL_AVAILABLE_MIXED_SERVER_TYPES'}
+    assert types(recs['mixed_ga']) == {'MIXED_SERVER_TYPES'}
+    assert recs['mixed_ga']['monitor_rule'] == 'ALL'
     assert types(recs['ip_all']) == set()
     assert types(recs['orphan']) == {'POOL_NOT_IN_LBDN'}
     assert types(recs['empty']) == {'POOL_NOT_IN_LBDN', 'POOL_NO_SERVERS'}
