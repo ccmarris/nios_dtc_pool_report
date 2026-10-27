@@ -12,7 +12,7 @@ Reports on NIOS DTC pool configuration via WAPI and flags potential misconfigura
 | `POOL_NO_SERVERS` | LOW | Pool has no servers |
 | `SERVER_NOT_FOUND` | LOW | Pool references a server not returned by the Grid |
 
-The pool's monitor rule (`availability`: ALL/ANY/QUORUM) is reported as "Monitor rule"; it is not the `ALL_AVAILABLE` LB method.
+The pool's monitor rule (`availability`: ALL/ANY/QUORUM) is reported as "Availability Requirements"; it is not the `ALL_AVAILABLE` LB method.
 
 ## Usage
 

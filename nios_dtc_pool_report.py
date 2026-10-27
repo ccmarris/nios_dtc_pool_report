@@ -70,7 +70,7 @@ LBDN_FIELDS = 'name,disable,pools,lb_method,patterns,auth_zones'
 ALL_AVAILABLE = 'ALL_AVAILABLE'
 
 # Pool 'availability' field: how monitor results are combined
-MONITOR_RULE_LABELS = {'ALL': 'All monitors up', 'ANY': 'Any monitor up',
+AVAILABILITY_LABELS = {'ALL': 'All monitors up', 'ANY': 'Any monitor up',
                        'QUORUM': 'Quorum of monitors up'}
 
 # Severity and description of each finding type
@@ -233,7 +233,7 @@ def analyse(pools: list, servers: list, lbdns: list) -> list:
     records = []
     for pool in pools:
         name = pool.get('name')
-        monitor_rule = pool.get('availability', '')
+        availability_requirements = pool.get('availability', '')
         preferred = pool.get('lb_preferred_method', '')
         alternate = pool.get('lb_alternate_method', '')
         findings = []
@@ -248,12 +248,14 @@ def analyse(pools: list, servers: list, lbdns: list) -> list:
                                      'host': host,
                                      'type': classify_host(host),
                                      'ratio': entry.get('ratio'),
-                                     'disable': srv.get('disable', False)})
+                                     'disable': srv.get('disable', False),
+                                     'health': (srv.get('health') or {}).get(
+                                         'availability', '')})
             else:
                 logger.warning(f'Pool {name}: server {sref} not found')
                 pool_servers.append({'name': ref_name(sref), 'host': '',
                                      'type': '', 'ratio': entry.get('ratio'),
-                                     'disable': False})
+                                     'disable': False, 'health': ''})
                 findings.append(('SERVER_NOT_FOUND', ref_name(sref)))
 
         types = {s['type'] for s in pool_servers if s['type']}
@@ -275,13 +277,15 @@ def analyse(pools: list, servers: list, lbdns: list) -> list:
         records.append({'name': name,
                         'comment': pool.get('comment', ''),
                         'disable': pool.get('disable', False),
-                        'monitor_rule': monitor_rule,
+                        'availability_requirements': availability_requirements,
                         'quorum': pool.get('quorum', 0),
                         'lb_preferred_method': preferred,
                         'lb_alternate_method': alternate,
                         'monitors': [ref_name(m) for m in pool.get('monitors', [])],
                         'health': (pool.get('health') or {}).get(
                             'availability', ''),
+                        'health_description': (pool.get('health') or {}).get(
+                            'description', ''),
                         'servers': pool_servers,
                         'lbdns': sorted(pool_lbdns.get(name, [])),
                         'findings': [{'type': t, 'severity': FINDINGS[t][0],
@@ -388,17 +392,23 @@ def print_report(records: list, findings_only: bool = False):
     for rec in records:
         if findings_only and not rec['findings']:
             continue
-        rule = MONITOR_RULE_LABELS.get(rec['monitor_rule'], rec['monitor_rule'])
+        rule = AVAILABILITY_LABELS.get(rec['availability_requirements'],
+                                       rec['availability_requirements'])
+        health = rec['health'] or '-'
+        if rec['health_description']:
+            health += f' ({rec["health_description"]})'
         state = ' (disabled)' if rec['disable'] else ''
         print(f'Pool: {rec["name"]}{state}')
-        print(f'  LB method    : {rec["lb_preferred_method"]}'
+        print(f'  {"LB method":26}: {rec["lb_preferred_method"]}'
               f' / {rec["lb_alternate_method"] or "-"}')
-        print(f'  Monitors     : {", ".join(rec["monitors"]) or "-"}')
-        print(f'  Monitor rule : {rule}')
-        print(f'  LBDNs        : {", ".join(rec["lbdns"]) or "-"}')
-        print('  Servers      :')
+        print(f'  {"Monitors":26}: {", ".join(rec["monitors"]) or "-"}')
+        print(f'  {"Availability Requirements":26}: {rule}')
+        print(f'  {"Health":26}: {health}')
+        print(f'  {"LBDNs":26}: {", ".join(rec["lbdns"]) or "-"}')
+        print(f'  {"Servers":26}:')
         for s in rec['servers']:
-            print(f'    - {s["name"]:30} {s["type"]:5} {s["host"]}')
+            print(f'    - {s["name"]:30} {s["type"]:5} {s["host"]:30}'
+                  f' {s["health"] or "-"}')
         for f in rec['findings']:
             detail = f' ({f["detail"]})' if f['detail'] else ''
             print(f'  ** [{f["severity"]}] {f["type"]}{detail}')
@@ -418,8 +428,9 @@ def write_outputs(records: list, prefix: str):
     Returns:
         None
     '''
-    pool_cols = ['name', 'comment', 'disable', 'monitor_rule', 'quorum',
+    pool_cols = ['name', 'comment', 'disable', 'availability_requirements', 'quorum',
                  'lb_preferred_method', 'lb_alternate_method', 'health',
+                 'health_description',
                  'monitors', 'lbdns', 'servers', 'ip_servers',
                  'fqdn_servers', 'findings']
     try:

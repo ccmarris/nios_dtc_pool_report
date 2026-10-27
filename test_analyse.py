@@ -21,6 +21,7 @@ POOLS = [
      'lb_alternate_method': 'ALL_AVAILABLE',
      'servers': [srv('web1'), srv('web2')]},
     {'name': 'mixed_ga', 'availability': 'ALL',
+     'health': {'availability': 'GREEN', 'description': 'OK'},
      'lb_preferred_method': 'GLOBAL_AVAILABILITY',
      'servers': [srv('web1'), srv('web2')]},
     {'name': 'ip_all', 'lb_preferred_method': 'ALL_AVAILABLE',
@@ -48,7 +49,7 @@ def test_analyse():
     assert types(recs['mixed_all']) == {'ALL_AVAILABLE_MIXED_SERVER_TYPES'}
     assert types(recs['mixed_alt_all']) == {'ALL_AVAILABLE_MIXED_SERVER_TYPES'}
     assert types(recs['mixed_ga']) == {'MIXED_SERVER_TYPES'}
-    assert recs['mixed_ga']['monitor_rule'] == 'ALL'
+    assert recs['mixed_ga']['availability_requirements'] == 'ALL'
     assert types(recs['ip_all']) == set()
     assert types(recs['orphan']) == {'POOL_NOT_IN_LBDN'}
     assert types(recs['empty']) == {'POOL_NOT_IN_LBDN', 'POOL_NO_SERVERS'}
